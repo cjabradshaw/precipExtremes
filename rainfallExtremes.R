@@ -107,3 +107,57 @@ abline(times.low.fit, lty=2, col="red")
 linreg.ER(year.vec[times.low[-1]], time.diffs.low)
 par(mfrow=c(1,1))
 
+
+## plot all years of data
+dat1 <- subset(dat, Year > min(dat$Year))
+
+# monthly totals
+year.vec <- as.numeric(attr(table(dat1$Year), "names"))
+lyrvec <- length(year.vec)
+yrmo.mat <- matrix(data=NA, nrow = lyrvec, ncol = 12)
+
+par(mfrow=c(2,1))
+plot(month.vec, precip.mon.mn, type="l", lwd=3, xlab="month", ylab="monthly precip (mm)", ylim=c(0,max(dat1$Monthly.Precipitation.Total..millimetres.)))
+#grid(col="light grey", lty=3)
+for (y in 1:lyrvec) {
+  yr.sub <- subset(dat1, Year==year.vec[y])
+  yr.sub.mo <- yr.sub$Month
+  yrmo.mat[y, yr.sub.mo] <- yr.sub$Monthly.Precipitation.Total..millimetres.
+  lines(month.vec[yr.sub.mo], yr.sub$Monthly.Precipitation.Total..millimetres., lty=2, lwd=0.5, col="light grey")
+}
+lines(month.vec, precip.mon.mn, lty=1, lwd=3)
+precip.mo.lo <- apply(yrmo.mat, MARGIN=2, quantile, probs=0.025, na.rm=T)
+lines(month.vec, precip.mo.lo, lty=2, lwd=2, col="red")
+precip.mo.up <- apply(yrmo.mat, MARGIN=2, quantile, probs=0.975, na.rm=T)
+lines(month.vec, precip.mo.up, lty=2, lwd=2, col="red")
+lines(month.vec[1:dim(dat.year.now)[1]], dat.year.now$Monthly.Precipitation.Total..millimetres., lty=3, lwd=3, col="blue")
+
+
+# cumulative (remove incomplete years)
+miss.yrs <- year.vec[sort(unique(which(is.na(yrmo.mat)==T, arr.ind = T)[,1]))]
+rem.yr.vec <- 0
+for(w in 1:length(miss.yrs)) {
+  rem.yr.vec <- c(rem.yr.vec, which(dat1$Year == miss.yrs[w]))
+}
+rem.yr.vec <- rem.yr.vec[-1]
+dat2 <- dat1[-rem.yr.vec,]
+
+precip.yr.sum <- xtabs(dat2$Monthly.Precipitation.Total..millimetres. ~ dat2$Year)
+max.ann.precip <- max(precip.yr.sum)
+yrmocum.mat <- matrix(data=NA, nrow = lyrvec, ncol = 12)
+plot(month.vec, cumsum(precip.mon.mn), type="l", lwd=3, xlab="", ylab="monthly precip (mm)", ylim=c(0,max.ann.precip))
+#grid(col="light grey", lty=3)
+for (y in 1:lyrvec) {
+  yr.sub <- subset(dat2, Year==year.vec[y])
+  yr.sub.mo <- yr.sub$Month
+  yrmocum.mat[y, yr.sub.mo] <- cumsum(yr.sub$Monthly.Precipitation.Total..millimetres.)
+  lines(month.vec[yr.sub.mo], cumsum(yr.sub$Monthly.Precipitation.Total..millimetres.), lty=2, lwd=0.5, col="light grey")
+}
+lines(month.vec, cumsum(precip.mon.mn), lty=1, lwd=3)
+precip.mocum.lo <- apply(yrmocum.mat, MARGIN=2, quantile, probs=0.025, na.rm=T)
+lines(month.vec, precip.mocum.lo, lty=2, lwd=2, col="red")
+precip.mocum.up <- apply(yrmocum.mat, MARGIN=2, quantile, probs=0.975, na.rm=T)
+lines(month.vec, precip.mocum.up, lty=2, lwd=2, col="red")
+lines(month.vec[1:dim(dat.year.now)[1]], cumsum(dat.year.now$Monthly.Precipitation.Total..millimetres.), lty=3, lwd=3, col="blue")
+par(mfrow=c(1,1))
+
